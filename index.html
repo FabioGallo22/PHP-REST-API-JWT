@@ -118,14 +118,139 @@ $(document).ready(function(){
 		return false;
 	});
  
-    // show login form trigger will be here
+    // show login form
+	$(document).on('click', '#login', function(){
+		showLoginPage();
+	});
+	 
+	// trigger when login form is submitted
+	$(document).on('submit', '#login_form', function(){
+	 
+		// get form data
+		var login_form=$(this);
+		var form_data=JSON.stringify(login_form.serializeObject());
+	 
+		// submit form data to api
+		$.ajax({
+			url: "api/login.php",
+			type : "POST",
+			contentType : 'application/json',
+			data : form_data,
+			success : function(result){
+		 
+				// store jwt to cookie
+				setCookie("jwt", result.jwt, 1);
+		 
+				// show home page & tell the user it was a successful login
+				showHomePage();
+				$('#response').html("<div class='alert alert-success'>Successful login.</div>");
+		 
+			},
+			error: function(xhr, resp, text){
+				// on error, tell the user login has failed & empty the input boxes
+				$('#response').html("<div class='alert alert-danger'>Login failed. Email or password is incorrect.</div>");
+				login_form.find('input').val('');
+			}
+		});
+	 
+		return false;
+	});
+	 
+	// trigger to show home page will be here
  
     // remove any prompt messages
 	function clearResponse(){
 		$('#response').html('');
 	}
 	 
-	// showLoginPage() will be here
+	// show login page
+	function showLoginPage(){
+	 
+		// remove jwt
+		setCookie("jwt", "", 1);
+	 
+		// login page html
+		var html = `
+			<h2>Login</h2>
+			<form id='login_form'>
+				<div class='form-group'>
+					<label for='email'>Email address</label>
+					<input type='email' class='form-control' id='email' name='email' placeholder='Enter email'>
+				</div>
+	 
+				<div class='form-group'>
+					<label for='password'>Password</label>
+					<input type='password' class='form-control' id='password' name='password' placeholder='Password'>
+				</div>
+	 
+				<button type='submit' class='btn btn-primary'>Login</button>
+			</form>
+			`;
+	 
+		$('#content').html(html);
+		clearResponse();
+		showLoggedOutMenu();
+	}
+	 
+	// function to set cookie
+	function setCookie(cname, cvalue, exdays) {
+		var d = new Date();
+		d.setTime(d.getTime() + (exdays*24*60*60*1000));
+		var expires = "expires="+ d.toUTCString();
+		document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+	} 
+	 
+	// if the user is logged out
+	function showLoggedOutMenu(){
+		// show login and sign up from navbar & hide logout button
+		$("#login, #sign_up").show();
+		$("#logout").hide();
+	}
+	 
+	// show home page
+	function showHomePage(){
+	 
+		// validate jwt to verify access
+		var jwt = getCookie('jwt');
+		$.post("api/validate_token.php", JSON.stringify({ jwt:jwt })).done(function(result) {
+	 
+			// if valid, show homepage
+			var html = `
+				<div class="card">
+					<div class="card-header">Welcome to Home!</div>
+					<div class="card-body">
+						<h5 class="card-title">You are logged in.</h5>
+						<p class="card-text">You won't be able to access the home and account pages if you are not logged in.</p>
+					</div>
+				</div>
+				`;
+			 
+			$('#content').html(html);
+			showLoggedInMenu();
+		})
+	 
+		// show login page on error will be here
+	}
+	 
+	// get or read cookie
+	function getCookie(cname){
+		var name = cname + "=";
+		var decodedCookie = decodeURIComponent(document.cookie);
+		var ca = decodedCookie.split(';');
+		for(var i = 0; i <ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0) == ' '){
+				c = c.substring(1);
+			}
+	 
+			if (c.indexOf(name) == 0) {
+				return c.substring(name.length, c.length);
+			}
+		}
+		return "";
+	}
+	 
+	// showLoggedInMenu() will be here
 	 
 	// function to make form values to json format
 	$.fn.serializeObject = function(){
